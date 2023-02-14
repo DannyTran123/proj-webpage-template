@@ -1,7 +1,153 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">Project 1: Rasterizer</h1>
+<h2 align="middle">Jade Kane, Danny Tran, CS184</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+
+<h2 align="middle">Section I: Rasterization</h2>
+
+<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+  <p>Rasterizing a triangle is to sample the pixels in the boundary box of the triangle, and checking whether the center of that pixel is inside the triangle or not. If the center of that pixel is inside the triangle, we fill in the pixel with the corresponding color. We did this using line tests to check if the point is within each edge of the triangle.</p>
+  <p>We only sample from the min x and y to the max x and y that are present in the triangle’s points (which is the definition of the boundary box of the triangle).</p>
+  <center><img src="images/task1.png" align="middle" width="800px"/></center>
+  <figcaption align="middle">Task 4</figcaption>
+
+<h3 align="middle">Part 2: Antialiasing triangles</h3>
+  <p>We started with changing the set_sample_rate and set_framebuffer_target by resizing the framebuffer in these functions to take into account the super sampling. Then the idea of the code was to sample all the points in the frame_buffer through the rasterize triangle function. We iterate through the original size points and then in each point we iterate through the sqrt(sample_rate) in order to take into account the super sampling. Then the averaging is done in the resolve_to_framebuffer by iterating through the original points and through the supersampling to average together the points. We chose to directly set the points in the frame_buffer in rasterize triangle instead of calling fill_pixel in order to make the mathematical relation between the 2 matrices simpler. Supersampling is useful because it makes the edges smoother with fewer “jaggies” and allows us to use more information from the triangle which is represented in the frame_buffer and then represented by averaging.</p>
+
+  <center><img src="images/task2_SR1.png" align="middle" width="400px"/></center>
+  <figcaption align="middle">With the Sample Rate = 1, parts of the tips of the triangle are lost because the thin edge of the triangle do not cross the center of these pixels.</figcaption>
+
+  <center><img src="images/task2_SR4.png" align="middle" width="400px"/></center>
+  <figcaption align="middle">With the Sample Rate = 4, the tips of the triangle are slightly shaded in which is from the anti-aliasing as the tips of the triangle hit the center of some of the quadrants of the pixels so there is a lighter shade of pink. Generally, there are also slightly less jaggies.</figcaption>
+
+  <center><img src="images/task2_SR9.png" align="middle" width="400px"/></center>
+  <figcaption align="middle">With the Sample Rate = 9, the top is represented slightly differently, with different shading at the tip of the triangle. The intensity of the color is different with different pixels having some shading that were previously not seen. Generally, in the picture there are less jaggies in the overall image.</figcaption>
+
+  <center><img src="images/task2_SR16.png" align="middle" width="400px"/></center>
+  <figcaption align="middle">With the Sample Rate = 16, the top is again slightly represented with different shading. The middle portion is more shaded in. The jaggies are slightly less visible and there are portions that are lighter shades.</figcaption>
+
+  <h3 align="middle">Part 3: Transforms</h3>
+  <center><img src="images/task3.png" align="middle" width="800px"/></center>
+  <figcaption align="middle">Robot Waving</figcaption>
+  <p>We had cubeman give a natural looking wave. His left arm is waving and his right arm is lowered by his side. This was done by adding a rotation for each arm and another for his left hand and changing the values in the translation so the spacing of body parts remains consistent.</p>
+
+
+<h2 align="middle">Section II: Sampling</h2>
+
+<h3 align="middle">Part 4: Barycentric coordinates</h3>
+  <p>The barycentric coordinates are generally 1 - alpha/beta/gamma away from that corner of the triangle where alpha + beta + gamma = 1. This allows you to get every point in the triangle as barycentric coording (alpha, beta, gamma) which represents its position inside the triangle. As a result, the closer the point is to the respective corner of the triangle the closer alpha/beta/gamma is to 1. As seen in the example shown below with the triangle, closer to a respective corner means a higher respective alpha/beta/gamma and we set the color by color = alpha * c0 + beta * c1 + gamma * c2 thus the closer you are to a corner the more of that color you have. </p>
+  <center><img src="images/task4_colortri.png" align="middle" width="800px"/></center>
+  <figcaption align="middle">In this example, the top edge of the triangle is green and you can see that the closer you are to the top right corner where the green is, the more green the pixel is. Similarly, this is true for the bottom left and right corner. This is due to the different weightings of the alpha, beta, and gamma that determine how much green, red, or blue to have at that pixel. As you go towards the center of the triangle, the colors mix together as they are about evenly distanced from the corners.</figcaption>
+
+  <center><img src="images/task4_test7.png" align="middle" width="800px"/></center>
+  <figcaption align="middle">Test 7</figcaption>
+
+
+  <h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+  <p>Pixel sampling is when we get a finite value for a coordinate in our image by using a sampling technique. To implement a texture on our polygon, we convert each xy coordinate to its equivalent uv coordinate on the texture space and find its corresponding color for that point. The uv coordinates are found by using the barycentric coordinates of the given triangle of points then sampling to find the appropriate color for that point in the texture. Sampling is needed because the xy coordinates do not always translate into an exact uv coordinate and so a color needs to be consolidated. Nearest pixel sampling simply chooses the color at the nearest integer uv coordinates. Bilinear interpolates the colors at the nearest uv coordinates.</p>
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/task5_nearest_sample1.png" align="middle" width="400px"/>
+          <figcaption align="middle">Nearest and Sample Rate 1</figcaption>
+        </td>
+        <td>
+          <img src="images/task5_nearest_sample16.png" align="middle" width="400px"/>
+          <figcaption align="middle">Nearest and Sample Rate 16</figcaption>
+        </td>
+      </tr>
+      <br>
+      <tr>
+        <td>
+          <img src="images/task5_bilinear_sample1.png" align="middle" width="400px"/>
+          <figcaption align="middle">Bilinear and Sample Rate 1</figcaption>
+        </td>
+        <td>
+          <img src="images/task5_bilinear_sample16.png" align="middle" width="400px"/>
+          <figcaption align="middle">Bilinear and Sample Rate 1</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+  <p>Level sampling is when you sample on different mipmap levels to determine the colors of the pixels. There are various level sampling methods including simply choosing level 0, choosing the nearest level to our calculated value D, or linear interpolation between levels. To implement level sampling for texture mapping: for each triangle we rasterize, we find the barycentric coordinates and equivalent uv points on the texture space, then we use the derivatives of u and v across x and y to calculate D and determine which mipmap level we should sample from.</p>
+  <p>The tradeoffs between the three techniques: </p>
+  <p>Pixel sampling from level 0 may be the slowest if the xy resolution is much lower than the resolution on level 0, because each xy coordinate could correspond to many texels which could be computationally slow. Nearest level allows us to choose a level where the correspondence between the xy coordinates and the texels are closer to 1, which computationally takes less time. Linear interpolation is slower than nearest because we have to interpolate between the 2 closest levels. </p>
+  <p>In terms of memory, level 0 takes the least amount of memory because we do not have to store all the other mipmap levels, whereas for nearest level and linear interpolation, we have to store all of the mipmap levels. However, these mipmap levels can be stored rather efficiently (only taking an extra third of the texture size in memory).</p>
+  <p>Level 0 has the least anitaliasing as we are using the highest resolution texture map. Nearest level and linear interpolation have some anti-aliasing as we typically use lower resolution texture maps. When using the nearest level and level interpolation, the images have a slight blur and have fewer ‘jaggies’. </p>
+  <p>Example Images (Gotten from https://www.caracaschronicles.com/2019/04/19/berkeley-awakes-to-the-true-extent-of-venezuelas-crisis/sather-gate-1/): </p>
+
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="images/task6_zero_nearest.png" align="middle" width="275px"/>
+          <figcaption align="middle">Zero-Level and Nearest Pixel</figcaption>
+        </td>
+        <td>
+          <img src="images/task6_nearest_nearest.png" align="middle" width="275px"/>
+          <figcaption align="middle">Nearest-Level and Nearest Pixel</figcaption>
+        </td>
+        <td>
+          <img src="images/task6_bilinear_nearest.png" align="middle" width="275px"/>
+          <figcaption align="middle">Bilinear-Level and Nearest Pixel</figcaption>
+        </td>
+      </tr>
+      <br>
+      <tr>
+        <td>
+          <img src="images/task6_zero_bilinear.png" align="middle" width="275px"/>
+          <figcaption align="middle">Zero-Level and Bilinear Pixel</figcaption>
+        </td>
+        <td>
+          <img src="images/task6_nearest_bilinear.png" align="middle" width="275px"/>
+          <figcaption align="middle">Nearest-Level and Bilinear Pixel</figcaption>
+        </td>
+        <td>
+          <img src="images/task6_bilinear_bilinear.png" align="middle" width="275px"/>
+          <figcaption align="middle">Bilinear-Level and Bilinear Pixel</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+<h2 align="middle">Section III: Art Competition</h2>
+<p>If you are not participating in the optional art competition, don't worry about this section!</p>
+
+<h3 align="middle">Part 7: Draw something interesting!</h3>
+
+</body>
 </html>
