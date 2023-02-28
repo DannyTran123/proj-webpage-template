@@ -1,7 +1,107 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<style>
+		body {
+			padding: 100px;
+			width: 1000px;
+			margin: auto;
+			text-align: left;
+			font-weight: 300;
+			font-family: 'Open Sans', sans-serif;
+			color: #121212;
+		}
+		h1, h2, h3, h4 {
+			font-family: 'Source Sans Pro', sans-serif;
+		}
+	</style>
+	<title>CS 184 Rasterizer</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2023</h1>
+<h1 align="middle">Project 2: MeshEdit</h1>
+<h2 align="middle">Jade Kane, Danny Tran, CS184</h2>
+
+<br><br>
+
+<div>
+
+	<h2 align="middle">Overview</h2>
+	<p> Throughout the course of this assignment, we progressed from evaluating simple curves and lines in 2D, to manipulating and shading detailed 3D meshes. One concept we learned is that limited points can be processed to become a more detailed object eg. when we split our teapot mesh we created more vertices and ultimately a smoother and more detailed 3D model from the original control points. This method of upsampling is done as opposed to the previously learned upsampling methods as it works better with triangles. </p>
+
+	<h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
+
+	<h3 align="middle">Part 1: Bezier Curves with 1D de Casteljau Subdivision</h3>
+	<p>For a set of control points of size n and a parameter t, one step of de Casteljau's algorithm interpolates between two points at a time (lerp(p1, p2, t), lerp(p2, p3, t), etc.) to produce a new set of points of size n - 1. For a given parameter t, this step repeats until one final point is produced. This point is the amalgamation of the control points for a certain t and lies on the Bezier curve. This process is repeated for a range of t values to produce the complete Bezier curve.</p>
+	<p>Our lerp function: lerp(p1, p2, t) = ((1 - t) * p1) + (t * p2)</p>
+	<center><img src="images/task1-first.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">_______</figcaption>
+
+	<center><img src="images/task1-second.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Modified by moving points</figcaption>
+
+	<h3 align="middle">Part 2: Bezier Surfaces with Separable 1D de Casteljau</h3>
+	<p>Given an nxn grid of 3D control points, we produce a Bezier surface by running de Casteljau's algorithm multiple times across the grid. We still interpolate between points using essentially the same lerp function, however, our function now accepts and interpolates 3D points instead of 2D. </p>
+	<p>To produce a point on the Bezier surface for a given grid of control points and given parameters, first, we need to traverse the rows of the grid. For each row in the grid, we run de Casteljau using a parameter u to produce a single point which lies on the Bezier curve of that row. Iterating de Casteljau over every row produces a column of 3D points (a resulting grid of size nx1). Then, for this column of points, we run de Casteljau a final time with parameter v to produce the point which lies on the Bezier surface.</p>
+	<p>To produce the full surface, we repeat this process for a range of u and v values.</p>
+
+	<center><img src="images/task2.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">The Mesh for the Teapot with Separable 1D de Casteljau</figcaption>
+
+
+
+	<h2 align="middle">Section II: Triangle Meshes and Half-Edge Data Structure</h2>
+
+	<h3 align="middle">Part 3: Area-Weighted Vertex Normals</h3>
+	<p>For each face incident to the given position, starting at the face which utilizes the 3D coordinate of the given vertex and the halfedges incident to it, we find the normal and area of the face. We find the normal by performing a cross product on the two halfedges which follow from the vertex within the face, and we find the area by halving the cross product of the same two edges. We normalize the calculated normal and add this value as well as the calculated area to separate arrays. We then twin onto the next face and repeat this process until we arrive back at the original position in the mesh.</p>
+	<p>Once the normalized normal and area are found for each face incident to our original face, for each face, we divide its area by the total sum of the areas and multiply it by the corresponding normal.</p>
+
+	<center><img src="images/task3-before-wire.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Before Phong Shading with Wireframe</figcaption>
+	<center><img src="images/task3-before-no-wire.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Before Phong Shading with no Wireframe</figcaption>
+	<center><img src="images/task3-after-wire.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Phong Shading with Wireframe</figcaption>
+	<center><img src="images/task3-after-no-wire.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Phong Shading with no Wireframe</figcaption>
+
+	<h3 align="middle">Part 4: Edge Flip</h3>
+	<p>To implement the edge flip operation I started off with drawing a diagram for the before and after of the edge flip and labeling each object and their corresponding pointers in the new arrangement. Then I started off with the halfedge and then got all the corresponding objects that I labeled. Then for every object, I set each of their pointers to what it should do in the flipped diagram. Some debugging tricks that I used was to use assert statements to make sure things were pointing correctly and the structure was correct. While debugging this task, I probably looked through the code and setting things at least 10 times. </p>
+	<center><img src="images/task4-before.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Before Edge Flips</figcaption>
+	<center><img src="images/task4-after.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Edge Flips</figcaption>
+
+
+	<h3 align="middle">Part 5: Edge Split</h3>
+	<p>Similar to task 4, I started off with drawing a diagram for the before and after of the edge split and labeling each object and their corresponding pointers in the new arrangement. However, for the edge split, we also had to initiate new elements such as new half edges, edges, faces, and vertices. I started off with initializing all these new elements and then setting some of these new initialized objects. Then, I started off with each quadrant and set all the object’s pointers to the proper objects. Some debugging tricks that I used was to use assert statements to make sure things were pointing correctly and the structure was correct. Some tests I ran were whether the half edges have the proper vertices and the new triangles were proper. While debugging this task, I probably looked through the code and setting things at least 10 times.</p>
+
+	<center><img src="images/task5-default.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Before Edge Splits and Edge Flips</figcaption>
+	<center><img src="images/task5-split.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Edge Splits</figcaption>
+	<center><img src="images/task5-split-flip.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Edge Splits and Edge Flips</figcaption>
+
+	<h3 align="middle">Part 6: Loop Subdivision for Mesh Upsampling</h3>
+	<p>Level sampling is when you sample on different mipmap levels to determine the colors of the pixels. There are various level sampling methods including simply choosing level 0, choosing the nearest level to our calculated value D, or linear interpolation between levels. To implement level sampling for texture mapping: for each triangle we rasterize, we find the barycentric coordinates and equivalent uv points on the texture space, then we use the derivatives of u and v across x and y to calculate D and determine which mipmap level we should sample from.</p>
+	<p>The tradeoffs between the three techniques: </p>
+	<p>Pixel sampling from level 0 may be the slowest if the xy resolution is much lower than the resolution on level 0, because each xy coordinate could correspond to many texels which could be computationally slow. Nearest level allows us to choose a level where the correspondence between the xy coordinates and the texels are closer to 1, which computationally takes less time. Linear interpolation is slower than nearest because we have to interpolate between the 2 closest levels. </p>
+	<p>In terms of memory, level 0 takes the least amount of memory because we do not have to store all the other mipmap levels, whereas for nearest level and linear interpolation, we have to store all of the mipmap levels. However, these mipmap levels can be stored rather efficiently (only taking an extra third of the texture size in memory).</p>
+	<p>Level 0 has the least anitaliasing as we are using the highest resolution texture map. Nearest level and linear interpolation have some anti-aliasing as we typically use lower resolution texture maps. When using the nearest level and level interpolation, the images have a slight blur and have fewer ‘jaggies’. </p>
+	<p>Example Images (Gotten from https://www.caracaschronicles.com/2019/04/19/berkeley-awakes-to-the-true-extent-of-venezuelas-crisis/sather-gate-1/): </p>
+
+
+
+	<h2 align="middle">Section III: Art Competition</h2>
+	<p>If you are not participating in the optional art competition, don't worry about this section!</p>
+
+	<h3 align="middle">Part 7: Draw something interesting!</h3>
+
+</body>
 </html>
