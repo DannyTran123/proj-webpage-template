@@ -32,7 +32,7 @@
 <div>
 
 	<h2 align="middle">Overview</h2>
-	<p> Throughout the course of this assignment, we progressed from evaluating simple curves and lines in 2D, to manipulating and shading detailed 3D meshes. One concept we learned is that limited points can be processed to become a more detailed object eg. when we split our teapot mesh we created more vertices and ultimately a smoother and more detailed 3D model from the original control points. This method of upsampling is done as opposed to the previously learned upsampling methods as it works better with triangles. </p>
+	<p>Throughout the course of this assignment, we progressed from evaluating simple curves and lines in 2D, to manipulating and shading detailed 3D meshes. One concept we learned is that limited points can be processed to become a more detailed object eg. when we upsampled our teapot mesh, we created more vertices and ultimately a smoother and more detailed 3D model from the original control points. This method of upsampling is used as opposed to the previously learned upsampling methods as this new method works better with triangles.</p>
 
 	<h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
 
@@ -40,25 +40,23 @@
 	<p>For a set of control points of size n and a parameter t, one step of de Casteljau's algorithm interpolates between two points at a time (lerp(p1, p2, t), lerp(p2, p3, t), etc.) to produce a new set of points of size n - 1. For a given parameter t, this step repeats until one final point is produced. This point is the amalgamation of the control points for a certain t and lies on the Bezier curve. This process is repeated for a range of t values to produce the complete Bezier curve.</p>
 	<p>Our lerp function: lerp(p1, p2, t) = ((1 - t) * p1) + (t * p2)</p>
 	<center><img src="images/task1-first.png" align="middle" width="800px"/></center>
-	<figcaption align="middle">_______</figcaption>
+	<figcaption align="middle">The Bezier Curves and the Evaluation Step</figcaption>
 
 	<center><img src="images/task1-second.png" align="middle" width="800px"/></center>
 	<figcaption align="middle">Modified by moving points</figcaption>
 
 	<h3 align="middle">Part 2: Bezier Surfaces with Separable 1D de Casteljau</h3>
-	<p>Given an nxn grid of 3D control points, we produce a Bezier surface by running de Casteljau's algorithm multiple times across the grid. We still interpolate between points using essentially the same lerp function, however, our function now accepts and interpolates 3D points instead of 2D. </p>
-	<p>To produce a point on the Bezier surface for a given grid of control points and given parameters, first, we need to traverse the rows of the grid. For each row in the grid, we run de Casteljau using a parameter u to produce a single point which lies on the Bezier curve of that row. Iterating de Casteljau over every row produces a column of 3D points (a resulting grid of size nx1). Then, for this column of points, we run de Casteljau a final time with parameter v to produce the point which lies on the Bezier surface.</p>
+	<p>Given an nxn grid of 3D control points, we produce a Bezier surface by running de Casteljau's algorithm multiple times across the grid. We still interpolate between points using essentially the same lerp function, however, our function now accepts and interpolates 3D points instead of 2D.</p>
+	<p>To produce a point on the Bezier surface for a given grid of control points and given parameters, first, we need to traverse the rows of the grid. For each row in the grid, we run de Casteljau using a parameter u to produce a single point which lies on the Bezier curve of that row. Iterating de Casteljau over every row produces a column of 3D points (a resulting grid of size nx1). Then for this column of points, we run de Casteljau a final time with parameter v to produce the point which lies on the Bezier surface.</p>
 	<p>To produce the full surface, we repeat this process for a range of u and v values.</p>
 
 	<center><img src="images/task2.png" align="middle" width="800px"/></center>
 	<figcaption align="middle">The Mesh for the Teapot with Separable 1D de Casteljau</figcaption>
 
-
-
 	<h2 align="middle">Section II: Triangle Meshes and Half-Edge Data Structure</h2>
 
 	<h3 align="middle">Part 3: Area-Weighted Vertex Normals</h3>
-	<p>For each face incident to the given position, starting at the face which utilizes the 3D coordinate of the given vertex and the halfedges incident to it, we find the normal and area of the face. We find the normal by performing a cross product on the two halfedges which follow from the vertex within the face, and we find the area by halving the cross product of the same two edges. We normalize the calculated normal and add this value as well as the calculated area to separate arrays. We then twin onto the next face and repeat this process until we arrive back at the original position in the mesh.</p>
+	<p>For each face incident to the given position, starting at the face which utilizes the 3D coordinate of the given vertex and the half-edges incident to it, we find the normal and area of the face. We find the normal by performing a cross product on the two half-edges which follow from the vertex within the face, and we find the area by halving the cross product of the same two edges. We normalize the calculated normal and add this value as well as the calculated area to separate arrays. We then twin onto the next face and repeat this process until we arrive back at the original position in the mesh.</p>
 	<p>Once the normalized normal and area are found for each face incident to our original face, for each face, we divide its area by the total sum of the areas and multiply it by the corresponding normal.</p>
 
 	<center><img src="images/task3-before-wire.png" align="middle" width="800px"/></center>
@@ -71,37 +69,55 @@
 	<figcaption align="middle">After Phong Shading with no Wireframe</figcaption>
 
 	<h3 align="middle">Part 4: Edge Flip</h3>
-	<p>To implement the edge flip operation I started off with drawing a diagram for the before and after of the edge flip and labeling each object and their corresponding pointers in the new arrangement. Then I started off with the halfedge and then got all the corresponding objects that I labeled. Then for every object, I set each of their pointers to what it should do in the flipped diagram. Some debugging tricks that I used was to use assert statements to make sure things were pointing correctly and the structure was correct. While debugging this task, I probably looked through the code and setting things at least 10 times. </p>
+	<p>To implement the edge flip operation, we started by drawing a diagram of the before and after of the edge flip, labeling each object and their corresponding pointers in the new arrangement. Then we began with the half-edge and assigned all of the corresponding objects we had labeled. For every object, we set each of their pointers to what it should be in the flipped diagram. One debugging trick we employed was the use of assert statements to make sure things were pointing correctly and the structure was correct. While debugging this task, we repeatedly had to look through the code to make sure we had set pointers correctly.</p>
 	<center><img src="images/task4-before.png" align="middle" width="800px"/></center>
 	<figcaption align="middle">Before Edge Flips</figcaption>
-	<center><img src="images/task4-after.png" align="middle" width="800px"/></center>
-	<figcaption align="middle">After Edge Flips</figcaption>
-
+	<center><img src="images/Task4WithFlipsNoShading.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Edge Flips with no shading</figcaption>
+	<center><img src="images/Task4WithShading.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Edge Flips with shading</figcaption>
+	<center><img src="images/task4-sketch.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Diagram Sketch for Reference for Edge Flip</figcaption>
 
 	<h3 align="middle">Part 5: Edge Split</h3>
-	<p>Similar to task 4, I started off with drawing a diagram for the before and after of the edge split and labeling each object and their corresponding pointers in the new arrangement. However, for the edge split, we also had to initiate new elements such as new half edges, edges, faces, and vertices. I started off with initializing all these new elements and then setting some of these new initialized objects. Then, I started off with each quadrant and set all the object’s pointers to the proper objects. Some debugging tricks that I used was to use assert statements to make sure things were pointing correctly and the structure was correct. Some tests I ran were whether the half edges have the proper vertices and the new triangles were proper. While debugging this task, I probably looked through the code and setting things at least 10 times.</p>
+	<p>Similar to task 4, we started by drawing a diagram of the before and after of the edge split, labeling each object and their corresponding pointers in the new arrangement. However, for the edge split, we also had to initiate new elements such as new half-edges, edges, faces, and vertices. We initialized these new elements then set some of these new initialized objects. Then, for each quadrant, we set all the object’s pointers to the proper objects. Once again, to debug, we used assert statements to make sure things were pointing correctly and the structure was correct. Some tests we ran were whether the half-edges have the proper vertices and the new triangles were proper.</p>
 
-	<center><img src="images/task5-default.png" align="middle" width="800px"/></center>
+	<center><img src="images/task4-before.png" align="middle" width="800px"/></center>
 	<figcaption align="middle">Before Edge Splits and Edge Flips</figcaption>
-	<center><img src="images/task5-split.png" align="middle" width="800px"/></center>
+	<center><img src="images/Task5WithSplits.png" align="middle" width="800px"/></center>
 	<figcaption align="middle">After Edge Splits</figcaption>
-	<center><img src="images/task5-split-flip.png" align="middle" width="800px"/></center>
+	<center><img src="images/Task5WithSplitsAndFlips.png" align="middle" width="800px"/></center>
 	<figcaption align="middle">After Edge Splits and Edge Flips</figcaption>
+	<center><img src="images/task5-sketch.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Diagram Sketch for Reference for Edge Split</figcaption>
 
 	<h3 align="middle">Part 6: Loop Subdivision for Mesh Upsampling</h3>
-	<p>Level sampling is when you sample on different mipmap levels to determine the colors of the pixels. There are various level sampling methods including simply choosing level 0, choosing the nearest level to our calculated value D, or linear interpolation between levels. To implement level sampling for texture mapping: for each triangle we rasterize, we find the barycentric coordinates and equivalent uv points on the texture space, then we use the derivatives of u and v across x and y to calculate D and determine which mipmap level we should sample from.</p>
-	<p>The tradeoffs between the three techniques: </p>
-	<p>Pixel sampling from level 0 may be the slowest if the xy resolution is much lower than the resolution on level 0, because each xy coordinate could correspond to many texels which could be computationally slow. Nearest level allows us to choose a level where the correspondence between the xy coordinates and the texels are closer to 1, which computationally takes less time. Linear interpolation is slower than nearest because we have to interpolate between the 2 closest levels. </p>
-	<p>In terms of memory, level 0 takes the least amount of memory because we do not have to store all the other mipmap levels, whereas for nearest level and linear interpolation, we have to store all of the mipmap levels. However, these mipmap levels can be stored rather efficiently (only taking an extra third of the texture size in memory).</p>
-	<p>Level 0 has the least anitaliasing as we are using the highest resolution texture map. Nearest level and linear interpolation have some anti-aliasing as we typically use lower resolution texture maps. When using the nearest level and level interpolation, the images have a slight blur and have fewer ‘jaggies’. </p>
-	<p>Example Images (Gotten from https://www.caracaschronicles.com/2019/04/19/berkeley-awakes-to-the-true-extent-of-venezuelas-crisis/sather-gate-1/): </p>
+	<p>In order to implement task 6, we broke the task up into 3 sub-tasks. </p>
+	<p>For the first sub-task, we find and store all the new vertex positions. For the vertices that are already in the mesh, we iterate through and find the new position of the old vertex using the equation: (1 - n * u) * original_position + u * original_neighbor_position_sum. u = 3/16 for a vertex of degree 3, otherwise u = 3/(8 * degree of vertex). The original_neighbor_position_sum is the sum of the positions which neighbor the old vertex position. We store this calculated new position in the newPosition pointer for the vertex. We also stored the position of new vertices in the edges that we split it on.</p>
+	<p>For the second sub task, we go through and split each existing edge in the mesh. We store the newPositions generated in the previous step to these new vertices, and update all pointers accordingly. Then we flip every edge that connects an old and new vertex. </p>
+	<p>For the final sub-task, we update the position for all of the vertices and we reset all the pointers for the objects.</p>
+	<p>To debug our code, we went over our edge flip and edge split implementations many times to check whether these subroutines were doing what they were supposed to. We also included the use of some assert statements to ensure some of the structure within our code. </p>
+	<p>After loop subdivision, meshes smooth over areas where there are not enough vertices to completely determine a clear shape. For smooth objects or smooth areas within an object, this process will produce a contour which should be quite accurate to the shape. However, for sharp corners and edges, the new smooth approximation does not reflect the original definition. This effect can be slightly alleviated by splitting more edges in the original shape and creating more vertices around the sharp edges before upsampling.</p>
 
+	<center><img src="images/Task6-1.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">Added Vertices from Split Edges</figcaption>
+	<center><img src="images/Task6-2.png" align="middle" width="800px"/></center>
+	<figcaption align="middle">After Upsampling</figcaption>
+	<h3>Cube</h3>
+	<p>After a few iterations of loop subdivision, the cube looks noticeably wonky as the splits and flips create a skewed distribution of vertices across the polygon.</p>
+	<center><img src="images/Task6-3.png" align="middle" width="800px"/></center>
+	<p>Although the overall shape of the original cube is perfectly symmetrical, the edges between vertices of the cube mean the faces are not symmetrical. Each face of the cube itself is symmetrical when split diagonally, but not symmetrical when split horizontally and vertically. This asymmetricality of the faces is immediately amplified when performing upsampling, and affects the shape of the entire cube.</p>
+	<center><img src="images/Task6-4.png" align="middle" width="800px"/></center>
+	<p>Splitting the edges cutting across each face of the cube makes the cube perfectly symmetrical in each direction.</p>
+	<center><img src="images/Task6-5.png" align="middle" width="800px"/></center>
+	<p>And as upsampling is performed, the cross of edges on each face maintains a symmetrical shape as edges are split and flipped surrounding it.</p>
+	<center><img src="images/Task6-6.png" align="middle" width="800px"/></center>
+	<center><img src="images/Task6-7.png" align="middle" width="800px"/></center>
+	<center><img src="images/Task6-8.png" align="middle" width="800px"/></center>
 
-
-	<h2 align="middle">Section III: Art Competition</h2>
+	<h2 align="middle">Section III: Art Competition: Model Something Creative!</h2>
 	<p>If you are not participating in the optional art competition, don't worry about this section!</p>
 
-	<h3 align="middle">Part 7: Draw something interesting!</h3>
-
+</div>
 </body>
 </html>
