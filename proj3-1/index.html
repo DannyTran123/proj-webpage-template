@@ -1,7 +1,290 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<style>
+		body {
+			padding: 100px;
+			width: 1000px;
+			margin: auto;
+			text-align: left;
+			font-weight: 300;
+			font-family: 'Open Sans', sans-serif;
+			color: #121212;
+		}
+		h1, h2, h3, h4 {
+			font-family: 'Source Sans Pro', sans-serif;
+		}
+	</style>
+	<title>CS 184 Rasterizer</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
+<h1 align="middle">Project 3-1: Pathtracer</h1>
+<h2 align="middle">Jade Kane, Danny Tran, CS184</h2>
+
+<br><br>
+
+<div>
+
+	<h2 align="middle">Overview</h2>
+	<p>Throughout the course of this assignment, we went from simply generating rays in a 3D world to quickly rendering images of complex 3D scenes with full global lighting and shading. Our approach for each section was to first conceptually understand the task and then to implement each part using the provided hints, ensuring that each individual section was fully functioning before we proceeded to the next part. We thought this would be a straightforward approach, however, we found small issues which would occur in later tasks that would not be detected in the rendering files for the earlier tasks. This meant we had to conceptually understand what may be causing an issue and pinpoint which section was causing the problem (eg. we had black lines that would only occur for CBbunny.dae, which we found was caused by an improper condition in task 2 which was returning false for bbox intersections that occurred with rays who’s ray.min was below 0). In the end, we managed to complete the assignment without too many major complications and learned a lot in the process.</p>
+
+	<h2 align="middle">Part 1: Ray Generation and Scene Intersection</h2>
+	<h3>Ray Generation for Rendering:</h3>
+	<p>Given x and y coordinates in image space, to generate a ray which passes through those equivalent points, we have to convert the coordinates into world space. First, we convert them to camera space: eg. camera_x = ((x * 2) - 1) * tan(radians(0.5 * hFov)). Then we create a 3D vector with points (camera_x, camera_y, -1) and multiply that by c2w to convert to world space. This new vector will be the direction of the ray from the camera position to the given image coordinate in world space. We create a new ray with origin camera_pos and with the newly computed vector as its direction. Finally, set the ray’s min and max to nClip and fClip.</p>
+	<p>To generate random rays passing through a single pixel, we generate a random coordinate between (0, 0) and (1, 1) to add to the (x, y) of the given pixel. We normalize this new coordinate and pass it into the ray generator. We find the estimate radiance of the ray. Then we repeat this process and update the pixel with the average radiance of the generated random rays.</p>
+	This process contributes to the rendering pipeline because it tells us what radiance each pixel should have to represent the image as if we are viewing it as taken from a camera.
+
+	<h3>Primitive Intersections:</h3>
+	<p>Primitives are objects within the world space that each ray may interact with. If an intersection occurs, we know that the pixel associated with the ray should change to represent this object. We need data about the intersection to simulate the appearance of that shape.</p>
+	<p>For ray-triangle intersection, we used the Möller–Trumbore algorithm to find the potential t where the ray and triangle intersect. If this t is valid, the actual position where the intersection occurs would be: ray_origin + ray_direction * t. To check if t is valid, we need to assert t >= 0, b1 and b2 are between 0 and 1, and b1 + b2 is between 0 and 1. If these conditions are met, and if t is between ray.min and ray.max, then we can update the Intersection instance. We find the normal at that intersection by using barycentric coordinates and the given normals at each vertex of the triangle. We also make ray.max equal to the new t because we do not need to find intersections for this ray which occur any further away than the existing found intersection.</p>
+
+	<h4>Examples of Small Rendered .dae files Without Shading:</h4>
+	<div align="middle">
+		<table style="width=100%" align ="middle">
+			<tr>
+				<td>
+					<img src="images/Part1:2_cow.png" align="middle" width="350px"/>
+					<figcaption align="middle">cow.dae</figcaption>
+				</td>
+				<td>
+					<img src="images/Part1_CBspheres_lambertian.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBspheres_lambertian.dae</figcaption>
+				</td>
+				<td>
+					<img src="images/Part1_bench.png" align="middle" width="350px"/>
+					<figcaption align="middle">bench.dae</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<h2 align="middle">Part 2: Bounding Volume Heirarchy</h2>
+	<p>Given the max leaf size and iterators over every primitive in the scene, we construct a BVH by splitting the iterators into smaller subparts until each subpart is less than or equal to the max leaf size. These parts are arranged in a tree. Each node either points to children nodes or it holds up to max leaf size number of primitives. </p>
+	<p>For our splitting point heuristic, we first took the average of every primitive in the node, then figured out which axis had the biggest difference between its first primitive position and its average position. Once we had this axis, we used some helper comparator functions and std::sort to sort the primitives along that axis. Once the primitives were sorted, we found the first primitive to exceed the average and split the node at that point.</p>
+
+	<h3>Rendering large files, 480x360 res, 6 thread</h3>
+	<p>None of these images would be possible to render without BVH acceleration.</p>
+	<div align="middle">
+		<table style="width=100%" align ="middle">
+			<tr>
+				<td>
+					<img src="images/Part2_CBlucy.png" align="middle" width="350px"/>
+					<figcaption align="middle">With BVH: 0.1263s</figcaption>
+				</td>
+				<td>
+					<img src="images/Part2_CBbunny.png" align="middle" width="350px"/>
+					<figcaption align="middle">With BVH: 0.2243s</figcaption>
+				</td>
+				<td>
+					<img src="images/Part2_CBdragon.png" align="middle" width="350px"/>
+					<figcaption align="middle">With BVH: 0.2884</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<p>Rendering moderate files, 480x360 res, 6 thread</p>
+	<div align="middle">
+		<table style="width=100%" align ="middle">
+			<tr>
+				<td>
+					<img src="images/Part2_banana.png" align="middle" width="350px"/>
+					<figcaption align="middle">Without BVH: 5.5781s and With BVH: 0.1171s</figcaption>
+				</td>
+				<td>
+					<img src="images/Part1:2_cow.png" align="middle" width="350px"/>
+					<figcaption align="middle">Without BVH: 13.92216s and With BVH: 0.0774s</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<p>The increase in speed with finding the relevant intersections is very significant, with the difference for cow.dae being in the order of 100 times faster than without BVH. This is because large chunks of primitives are quickly discarded when it is known that their bbox does not have an intersection, cutting the number of intersection function calls down to 1/100 of the original number.</p>
+
+	<h2 align="middle">Part 3: Direct Illumination</h2>
+	<h3>Direct Lighting Functions </h3>
+	<h4>Uniform Hemisphere Sampling</h4>
+	<p>Since we are uniformly sampling from a hemisphere the probably of getting each sample is 1.0 / (2.0 * PI). Then from here we instantiated ‘L_out’ as the 0 vector. Then we iterated through num_samples. Each time we sample a wi vector and then turn this vector into object coordinates. Then we create a new ray using the hit_p as the origin and the wi as the direction of this new ray. We then check if this ray intersects with anything else in the scene and if it does we compute the get_emission at the intersection of this new ray which becomes our ‘L_value’ but otherwise the ‘L_value’ is just the 0 vector. Then we compute the ‘f_value’ which is the bsdf of the initial intersection passed in which is obtained by isect.bsdf->f(w2o * w_out, w2o * wi) where the w2o comes from transforming the coordinates from world to object space and compute cos_theta = dot(isect.n.unit(), wi.unit()). We add this to ‘L_out’ by L_out = (f_value * L_value * cos_theta) / p and then average L_out by num_samples. After all the iteration, we return L_out.</p>
+
+	<h4>Importance Sampling Lights</h4>
+	<p>Similarly to uniform hemisphere sampling we start by instantiating ‘L_out’ to the 0 vector. We then iterate over all the lights in the scene with each being ‘curr_light’. We start off by determining the num_samples for each light, if the light was a point light num_samples = 1 and otherwise num_samples = ns_area_light. Then for each curr_light we iterate through the num_samples where we start by computing the emitted radiance as ‘L_value’ by L_value = curr_light->sample_L(hit_p, &wi, &distToLight, &pdf). Then we create a new ray as ‘curr_ray’ with hit_p as the origin and the wi from sample_L as the direction for the ray. Then we turn wi from world to object coordinates by wi = w2o * wi. We then set curr_ray’s min_t to EPS_F and max_t to distToLight - EPS_F. We then check if curr_ray does not have an intersection. If curr_ray does not have an intersection we compute f_value = isect.bsdf->(w_out, wi) and cos_theta = wi.z. Then we compute L_out = (cos_theta / (num_samples * pdf)) * f_value * L_value. After iterating through all the lights we then return L_out.</p>
+
+	<h3>Hemisphere Sampling vs. Importance Sampling</h3>
+	<div align="middle">
+		<table style="width=100%">
+			<tr>
+				<td>
+					<img src="images/Part3_CBbunny_hemisphere.png" align="middle" width="350px"/>
+					<figcaption align="middle">Bunny with Hemisphere Sampling</figcaption>
+				</td>
+				<td>
+					<img src="images/Part3_CBbunny_importance.png" align="middle" width="350px"/>
+					<figcaption align="middle">Bunny with Importance Sampling</figcaption>
+				</td>
+			</tr>
+			<br>
+			<tr>
+				<td>
+					<img src="images/Part3_CBspheres_lambertian_hemisphere.png" align="middle" width="350px"/>
+					<figcaption align="middle">Spheres Lambertian with Hemisphere Sampling</figcaption>
+				</td>
+				<td>
+					<img src="images/Part3_CBspheres_lambertian_importance.png" align="middle" width="350px"/>
+					<figcaption align="middle">Spheres Lambertian with Importance Sampling</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<h3>CBbunny.dae with Varying Light Rays</h3>
+	<div align="middle">
+		<table style="width=100%">
+			<tr>
+				<td>
+					<img src="images/Part3_CBbunny_importance_s1l1.png" align="middle" width="350px"/>
+					<figcaption align="middle">Light Rays: 1, Sample-Per-Pixel: 1</figcaption>
+				</td>
+				<td>
+					<img src="images/Part3_CBbunny_importance_s1l4.png" align="middle" width="350px"/>
+					<figcaption align="middle">Light Rays: 4, Sample-Per-Pixel: 1</figcaption>
+				</td>
+			</tr>
+			<br>
+			<tr>
+				<td>
+					<img src="images/Part3_CBbunny_importance_s1l16.png" align="middle" width="350px"/>
+					<figcaption align="middle">Light Rays: 16, Sample-Per-Pixel: 1</figcaption>
+				</td>
+				<td>
+					<img src="images/Part3_CBbunny_s1l64.png" align="middle" width="350px"/>
+					<figcaption align="middle">Light Rays: 64, Sample-Per-Pixel: 1</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<p>When there are fewer light rays the image is noisier. This can be seen when there is 1 light ray the black dots are very pronounced and there are spots are you go further out there are a few spread out black dots. This is slightly mitigated with 4 light rays where the black dots are lighter and the dots are more blended together. With light rays 16 the dots are not very noticeable unless looking closely and are blended in pretty well. With 64 light rays they are barely noticeable and the shadow looks like a normal shadow.</p>
+
+	<h3>Hemisphere Sampling vs. Importance Sampling</h3>
+	<p>The results from hemisphere sampling are much more speckled are typically much more noisy. This can be seen above where the hemisphere sampling is full of black speckles which causes the image to be much darker. Typically, with the hemisphere sampling much more sampling is needed to attain a good image due to in the hemisphere sampling more samples are needed to sample at the lights hence all the black speckles. In addition, even the shadow is slightly grainy whereas the importance sampling is not grainy at all. On the other hand, as seen above with the importance sampling the images are not full of the noisy black speckles despite having the same light rays and samples per pixel and the other arguments. This is due to the fact that the importance sampling samples at the light and is able to get the correct shading with less sampling. </p>
+
+	<h2 align="middle">Part 4: Global Illumination</h2>
+	<p>For the indirect lighting function we implemented the indirect lighting function primarily in the at_least_one_bounce function. We started with the implementation in est_radiance_global_illumination by returning L_out as L_out = zero_bounce_radiance(r, isect) + at_least_one_bounce_radiance(r, isect). Then we implemented the at_least_one_bounce_radiance function which we implemented recursively. We start off by defining L_out to be the 0 vector set the base case as r.depth = 0 where we return L_out in this case. Then in the recursive step we check that r.depth > 0 and the max_ray_depth >= 1. We then add one_bounce_radiance(r, isect) to L_out. Then we perform Russian Roulette by doing a coin flip which is heads with probably 0.3 and thus we enter the recursive step if the coin flip is false and if true we return L_out. We then compute the ‘reflectance’ = isect.bsdf->sample_f(w_out, &wi, &pdf) and then transform wi from object to world coordinate and turn wi into a unit vector. We then create a curr_ray with hit_p as the origin and wi as the direction. We set this ray’s depth as r.depth - 1 and the min_t to EPS_F. We define a new Intersection object inew and then check whether this curr_ray has an intersection with bvh->intersect(curr_ray, &inew) and if it does we compute cos_theta = abs(wi.z) and we add to L_out as L_out += at_least_one_bounce_radiance(curr_ray, inew) * reflectance * cos_theta / pdf / (1 - term_p). Then we have a return L_out at the end if the depth reaches 0.</p>
+	<h3>Rendered Images with Global Illumination with 1024 samples per pixel</h3>
+	<div align="middle">
+		<table style="width=100%">
+			<tr>
+				<td>
+					<img src="images/Part4_CBspheres_lambertian_m5s1024.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBspheres_lambertian with m = 5</figcaption>
+				</td>
+				<td>
+					<img src="images/Part4_blob_m5s1024.png" align="middle" width="350px"/>
+					<figcaption align="middle">blob.dae with m = 5</figcaption>
+				</td>
+			</tr>
+			<br>
+			<tr>
+				<td>
+					<img src="images/Part4_bench_m5s1024.png" align="middle" width="350px"/>
+					<figcaption align="middle">bench.dae with m = 5</figcaption>
+				</td>
+				<td>
+					<img src="images/Part4_dragon_m5s1024.png" align="middle" width="350px"/>
+					<figcaption align="middle">dragon.dae with m = 5</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<h3>Direct Illumination only vs. Indirect Illumination only</h3>
+	<div align="middle">
+		<table style="width=100%" align ="middle">
+			<tr>
+				<td>
+					<img src="images/Part4_CBspheres_lambertian_direct_only.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBspheres_lambertian with direct illumination only</figcaption>
+				</td>
+				<td>
+					<img src="images/Part4_CBspheres_lambertian_indirect_only.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBspheres_lambertian with indirect illumination only</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<h3>CBbunny.dae with 1024 samples per pixel</h3>
+	<div align="middle">
+		<table style="width=100%">
+			<tr>
+				<td>
+					<img src="images/Part4_CBbunny_m0.png" align="middle" width="350px"/>
+					<figcaption align="middle">max_ray_depth = 0</figcaption>
+				</td>
+			</tr>
+			<br>
+			<tr>
+				<td>
+					<img src="images/Part4_CBbunny_m1.png" align="middle" width="350px"/>
+					<figcaption align="middle">max_ray_depth = 1</figcaption>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="images/Part4_CBbunny_m2.png" align="middle" width="350px"/>
+					<figcaption align="middle">max_ray_depth = 2</figcaption>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="images/Part4_CBbunny_m3.png" align="middle" width="350px"/>
+					<figcaption align="middle">max_ray_depth = 3</figcaption>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="images/Part4_CBbunny_m100.png" align="middle" width="350px"/>
+					<figcaption align="middle">max_ray_depth = 100</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<p>With the max_ray_depth = 0, this is the same as just zero_bounce_radiance where only the light is visible. Then with the max_ray_depth = 1 this is the same as zero_bounce_radiance + one_bounce_radiance which can be seen with how dark the general scene is and the ceiling is completely dark. The at_least_bounce_radiance starts coming in with the when max_ray_depth = 2 where you can see the scene is generally brighter, there is some blue light on the bunny, and the ceiling is lit. The max_ray_depth = 3 is very very similar to the max_ray_depth = 2 but is maybe very slightly brighter than max_ray_depth = 2 but not noticeably. When max_ray_depth = 100 the scene is very slightly brighter and the blue lighting reflecting off the wall onto the bunny is very slightly brighter especially.</p>
+
+	<h2 align="middle">Part 5: Adaptive Sampling</h2>
+	<p>Adaptive sampling redistributes the concentration of samples to focus more on areas where the samples don’t converge as quickly, giving those areas more attention and detail in order to reduce noise. The areas which converge more quickly, like the light, floor, and walls, need fewer samples to resolve their appearance. This process may not necessarily reduce overall rendering time, but it ensures that the used samples are more efficient. To implement adaptive sampling, we measure the pixel convergence every samplesPerBatch number of samples. If the confidence interval for the convergence of the pixel exceeds 95%, we resolve the current pixel and move onto the next one.</p>
+	<h3>Heatmap Images</h3>
+	<div align="middle">
+		<table style="width=100%">
+			<tr>
+				<td>
+					<img src="images/Part5_CBbunny_l1m5s2048.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBbunny.dae</figcaption>
+				</td>
+				<td>
+					<img src="images/Part5_CBbunny_heatmap.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBbunny.dae Heatmap</figcaption>
+				</td>
+			</tr>
+			<br>
+			<tr>
+				<td>
+					<img src="images/Part5_CBspheres_l1m5s2048.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBspheres_lambertian.dae</figcaption>
+				</td>
+				<td>
+					<img src="images/Part5_CBspheres_lambertian_heatmap.png" align="middle" width="350px"/>
+					<figcaption align="middle">CBspheres_lambertian.dae Heatmap</figcaption>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<p>We can see that the adaptive sampling changes with the scene being rendered. The red indicates a high sampling rate and the blue indicates a low sampling rate. This can be noticeably seen with how with the 2 spheres there are 2 separate blue spots on top with the green on the spheres. This differs from the bunny where there is only the blue on top of the bunny and the green on the bunny. </p>
+
+	<h2 align="middle">Collaboration</h2>
+	<p>Overall, we worked well together, but we had some deligation with who would lead each part. Jade primarily focused on parts 1, 2, and 5, and Danny would help with small things like debugging and conceptual ideas. Similarly, Danny primarily worked on parts 3 and 4 with Jade helping with things like debugging and conceptual ideas. We also did the write up and rendering of images for our respective sections. The dynamic worked well, and we both learned a lot about pathtracing as we tackled each task and had to help each other ensure that each small function was running exactly as we wanted it to. We typically would work on parts fully together, but found that this week we would be more efficient by splitting the tasks between each of us.</p>
+</body>
 </html>
