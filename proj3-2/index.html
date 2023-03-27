@@ -1,7 +1,230 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<style>
+		div.padded {
+			padding-top: 0px;
+			padding-right: 100px;
+			padding-bottom: 0.25in;
+			padding-left: 100px;
+		}
+	</style>
+	<title>Your Name  |  CS 184</title>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+<body>
+<br />
+<h1 align="middle">Assignment 3-2: Additional Features to PathTracer</h1>
+<h2 align="middle">Kane, Jade SID: 3036223111</h2>
+<h2 align="middle">Tran, Danny SID: 3036648294</h2>
+<!--<h2 align="middle">(Webpage URL)</h2>-->
+
+<div class="padded">
+
+
+	* NOTE: For this project, you will choose TWO out of the four given parts to complete. One of those parts must be Part 1 or Part 2. In other words, you can choose any combination of two parts except the pair (Part 3, Part 4).
+
+	<h3 align="middle">Overview</h3>
+	<p>
+		This project had us implement more complicated textures for our 3D models as we simulated the appearance of mirror and glass by using combinations of relection and refraction. We also implemented the use of different camera lenses and focul positions. These new techniques ultimately allow us to create a more camera-realistic and visually appealing scene. As we worked through the tasks, our biggest mistakes were small misunderstandings of the instructions. Otherwise, our approach to each task simply involved following the guidelines as exactly as possible and trying to align them with our conceptual understanding.
+	</p>
+
+	<h3 align="middle">Part 1. Mirror and Glass Materials</h3>
+
+	<p>
+		To create the appearance of a mirror, we simply had to reflect a ray off of the object. We used the normal at the surface of the object to find the wi corresponding to a reflected wo. We then returned reflectance / abs_cos_theta(*wi) to cancel some of the effects of at_least_one_bounce_radiance.
+	</p>
+	<p>
+		Creating the appearance of glass was more complex than a simple mirror. First, we used Snell’s law to calculate the wi for a wo either entering or exiting a material. Then we used Schlick’s approximation to produce a ratio of relection versus refraction for a given point, defaulting to reflection if total internal reflection occured. Finally we returned an expression to cancel some of the components of at_least_one_bounce_radiance.
+	</p>
+
+	<p><b>
+		Show a sequence of six images of scene `CBspheres.dae` rendered with `max_ray_depth` set to 0, 1, 2, 3, 4, 5, and 100. The other settings should be at least 64 samples per pixel and 4 samples per light. Make sure to include all screenshots.
+	</b></p>
+	<center><img src="images/Part1_CBspheres_s128l4m0.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 0
+	</figcaption>
+
+	<center><img src="images/Part1_CBspheres_s128l4m1.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 1
+	</figcaption>
+
+	<center><img src="images/Part1_CBspheres_s128l4m2.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 2
+	</figcaption>
+
+	<center><img src="images/Part1_CBspheres_s128l4m3.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 3
+	</figcaption>
+
+	<center><img src="images/Part1_CBspheres_s128l4m4.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 4
+	</figcaption>
+
+	<center><img src="images/Part1_CBspheres_s128l4m5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 5. From this point onwards, differences are not particularly noticable, but the image may become slightly brighter and clearer as fewer points are left in unnecessary shadow.
+	</figcaption>
+
+	<center><img src="images/Part1_CBspheres_s128l4m100.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBspheres.dae with s: 128, l: 4, m: 100. Few differences can be observed at this level. The image may be brighter overall as few rays are absorbed by inescapable refraction into the spheres.
+	</figcaption>
+
+	<br>
+	<p><b>
+		Point out the new multibounce effects that appear in each image.
+	</b></p>
+	<p>
+		When m = 0, there are no rays that interact with the scene so there are no new effects. <br>
+		When m = 1, the walls are now visible but the spheres are now primarily black except a reflection from the top light can be seen on each ball. <br>
+		When m = 2, the left ball is getting a reflection from the scene facing it where the walls can be seen and the other sphere can be seen on the left ball. The right sphere is still primarily dark. <br>
+		When m = 3, the left ball is becoming more lit up and the reflection from the ceiling can now be seen. The right sphere is now lit up and the scene can now be seen on the left ball. Furthermore, the light on the floor next to the right ball is considerably brighter than previously. <br>
+		When m = 4, both the left and right ball are slightly brighter and some glare from the right ball can be seen on the blue wall. <br>
+		When m = 5 and m = 100, the scene is very similar to the previous ones besides being marginally brighter.
+	</p>
+	<br>
+	<p><b>
+		Explain how these bounce numbers relate to the particular effects that appear. Make sure to include all screenshots.
+	</b></p>
+	<p>
+		When m = 0, the rays do not reflect or refract at all, and the only light which can be seen is arriving directly from the source. They do not even reflect off of the walls of the room. <br>
+		When m = 1, reflection is enabled, meaning the walls become visible. Shadows are cast by the spheres as they absorb light which is refracted into them. A bright spot of light can be seen on the spheres as light reflects off of them directly from the source due to total internal reflection. <br>
+		When m = 2, some refraction is visible. The spheres are made of simulated glass, meaning except for specific angles where total internal reflection occurs, light is mostly refracted into the sphere. With two bounces, some rays are able to refract back out of the sphere and reach the camera. The spheres still have a visible shadow. <br>
+		When m = 3, most of the light which refracts into the spheres is able to escape and reach the camera. The shadow covering the spheres is significantly diminished. Light is also able to reflect off of the walls/floor multiple times, making the room slightly brighter and eliminating areas of shadow under the spheres. <br>
+		When m = 4, a small bright spot on the right wall can now be seen as even more light is refracted through the spheres and reflected off of the walls. Light seems to have concentrated there as it exits the spheres. <br>
+		When m = 5, from this point onwards, differences are not particularly noticable, but the image may become slightly brighter and clearer as fewer points are left in unnecessary shadow. <br>
+		When m = 100, few differences can be observed at this level. The image may be brighter overall as few rays are absorbed by inescapable refraction into the spheres.
+	</p>
+	<br>
+
+
+	<h3 align="middle">Part 2. Microfacet Material</h3>
+	<p><b>
+		Show a screenshot sequence of 4 images of scene `CBdragon_microfacet_au.dae` rendered with $\alpha$ set to 0.005, 0.05, 0.25 and 0.5. The other settings should be at least 128 samples per pixel and 1 samples per light. The number of bounces should be at least 5. Describe the differences between different images. Note that, to change the $\alpha$, just open the .dae file and search for `microfacet`.
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+	<p><b>
+		Show two images of scene `CBbunny_microfacet_cu.dae` rendered using cosine hemisphere sampling (default) and your importance sampling. The sampling rate should be fixed at 64 samples per pixel and 1 samples per light. The number of bounces should be at least 5. Briefly discuss their difference.
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+	<p><b>
+		Show at least one image with some other conductor material, replacing `eta` and `k`. Note that you should look up values for real data rather than modifying them arbitrarily. Tell us what kind of material your parameters correspond to.
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+
+
+
+
+	<h3 align="middle">Part 3. Environment Lightl</h3>
+	<b>Pick one *.exr* file to use for all subparts here. Include a converted *.jpg* of it in your website so we know what map you are using.</b>
+
+	<p><b>
+		In a few sentences, explain the ideas behind environment lighting (i.e. why we do it/how it works).
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+	<p><b>
+		Show the *probability_debug.png* file for the *.exr* file you are using, generated using the `save_probability_debug()` helper function after initializing your probability distributions.
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+	<p><b>
+		Use the `bunny_unlit.dae` scene and your environment map *.exr* file and render two pictures, one with uniform sampling and one with importance sampling. Use 4 samples per pixel and 64 samples per light in each. Compare noise levels. Make sure to include all screenshots.
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+	<p><b>
+		Use a different image (if you did part 2, we recommend `bunny_microfacet_cu_unlit.dae`) and your environment map *.exr* file and render two pictures, one with uniform sampling and one with importance sampling. Use 4 samples per pixel and 64 samples per light in each. Compare noise levels. Make sure to include all screenshots.
+	</b></p>
+	<p>
+		Your response goes here.
+	</p>
+	<br>
+
+
+
+	<h3 align="middle">Part 4. Depth of Field</h3>
+	<b>
+		For these subparts, we recommend using a microfacet BSDF scene to show off the cool out of focus effects you can get with depth of field!
+	</b>
+	<p><b>
+		In a few sentences, explain the differences between a pinhole camera model and a thin-lens camera model.
+	</b></p>
+	<p>
+		To implement depth of field, we had to simulate a thin camera lens which would have a greater radius than the pin-hole camera we have previously been using. Light from each point around the object passes through all points of the lens, meaning we should be receiving multiple light rays at different angles originating from the same object point, representing the same pixel. This creates some distortion as the lens is at varying distances from points around the object, which each have different ideal intersection focul points.
+	</p>
+	<p>
+		In practice, we simulated light passing through multiple points on the lens by taking random samples. We used the direction of our original ray coming from the object point and passing through (0, 0, 0) to find the expected intersection point on the plane of focus for our new random ray (which travels through a different part of the lens). Then we generated the ray corresponding to the point on the object, the random point on the lens, and the calculated intersection on the plane of focus for that object point.
+	</p>
+	<p><b>
+		Show a "focus stack" where you focus at 4 visibly different depths through a scene. Make sure to include all screenshots.
+	</b></p>
+	<center><img src="images/Part2_CBdragon_b0.23d4.0.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 4.0
+	</figcaption>
+	<center><img src="images/Part2_CBdragon_b0.23d4.5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 4.5
+	</figcaption>
+	<center><img src="images/Part2_CBdragon_b0.23d5.0.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 5.0
+	</figcaption>
+	<center><img src="images/Part2_CBdragon_b0.23d6.5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 6.5
+	</figcaption>
+	<br>
+	<p><b>
+		Show a sequence of 4 pictures with visibly different aperture sizes, all focused at the same point in a scene. Make sure to include all screenshots.
+	</b></p>
+	<center><img src="images/Part2_CBdragon_b0.10d4.5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 4.0
+	</figcaption>
+	<center><img src="images/Part2_CBdragon_b0.23d4.5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 4.5
+	</figcaption>
+	<center><img src="images/Part2_CBdragon_b0.50d4.5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 5.0
+	</figcaption>
+	<center><img src="images/Part2_CBdragon_b1.0d4.5.png" align="middle" width="350px"/></center>
+	<figcaption align="middle">
+		CBdragon.dae with b: 0.23 and d: 6.5
+	</figcaption>
+	<br>
+
+	<h3 align="middle">Partner Collaboration</h3>
+	<p>
+		As we have done many times on previous projects, we split our workload and consulted each other as we progressed through individual sections. In this project specifically, we each looked at the parts separately and compared our notes to create a functioning solution. We also tried to ensure that our time was spent efficiently. If one of us was taking the lead on a coding section, the other would work on the writeup. We worked around our different schedules so that we could each contribute to the project when we were able to. We both learned the concepts behind each task and benefited from working together. Also a note, we had accidentally created 2 repos but the code submission for Jade and Danny is the code submission under Danny’s code submission with the commit 4bd0e24.
+	</p>
+
+</div>
+</body>
 </html>
+
